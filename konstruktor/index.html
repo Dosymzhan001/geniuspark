@@ -101,12 +101,55 @@ details.fg summary{cursor:pointer;font-size:13px;color:var(--muted);min-height:3
 details.fg .sw{margin-top:6px}
 .share{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;min-height:48px;border-radius:12px;border:1px solid var(--line);background:none;font-weight:600;font-size:15px}
 #shmsg{margin:8px 0 0;font-size:13px;color:var(--muted)}
+
+.unfold{position:absolute;right:16px;bottom:14px;min-height:44px;padding:0 18px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font-weight:600;font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.unfold[aria-pressed=true]{background:var(--accent);color:#fff}
+@media(min-width:601px){.hint{bottom:70px}}
+.dims b{white-space:normal}
+
+/* final polish */
+html,body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+h1{font:700 23px/1.15 Unbounded,Inter,sans-serif;letter-spacing:-.02em}
+h2{font-weight:650}
+button,.upload,.wa{transition:background .15s,border-color .15s,color .15s,transform .1s}
+button:active{transform:scale(.98)}
+.chip:hover,.models button:hover,.ghost:hover{border-color:var(--accent)}
+.stage{container-type:size}
+.wm{position:absolute;left:0;right:0;top:12%;text-align:center;font:800 10.6cqw/1 Unbounded,Inter,sans-serif;letter-spacing:-.03em;white-space:nowrap;pointer-events:none;user-select:none;color:transparent;background:linear-gradient(180deg,light-dark(rgba(28,28,30,.13),rgba(255,255,255,.12)),light-dark(rgba(28,28,30,.03),rgba(255,255,255,.02)));-webkit-background-clip:text;background-clip:text}
+.wm small{display:block;margin-top:1.4cqw;font:500 clamp(10px,1.5cqw,16px)/1 Inter,sans-serif;letter-spacing:.32em;color:var(--muted);opacity:.75}
+.brand{display:none}
+#c,#room{z-index:1}
+.views,.dims,.hint,.unfold,.roomnote{z-index:2}
+#room{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;cursor:grab;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+#room[hidden]{display:none}
+.roomnote{position:absolute;left:16px;top:14px;margin:0;max-width:min(330px,70%);background:var(--card);border-radius:12px;padding:10px 14px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.mode{margin-bottom:18px}.mode button{font-weight:600;min-height:44px}
+.roomsec{margin:0 0 22px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.roomsec .fact{margin-bottom:12px}
+.upload{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:12px;background:var(--accent);color:light-dark(#fff,#141417);font-weight:650;cursor:pointer}
+.upload input{position:absolute;opacity:0;width:1px;height:1px}
+.upload:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+.rng{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;margin-top:12px;font-size:14px;color:var(--muted)}
+.rng input{width:100%;accent-color:var(--accent);height:32px}
+.sum{box-shadow:0 8px 28px rgba(0,0,0,.06)}
+.unfold{font-family:inherit}
+
+[hidden]{display:none!important}
+
+.wm{top:17%}
+@media(max-width:600px){.roomnote{top:auto;bottom:12px}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="app">
   <div class="stage" id="view" tabindex="0" aria-label="3D-вид дивана. Стрелками можно вращать.">
+    <div class="wm" aria-hidden="true">GENIUSPARK<small>мягкая мебель · Астана</small></div>
     <canvas id="c"></canvas>
+    <canvas id="room" width="1200" height="800" hidden aria-label="Комната с диваном. Перетаскивайте диван."></canvas>
+    <p class="roomnote" id="roomnote" hidden>Это пример комнаты. Загрузите своё фото, чтобы примерить диван у себя.</p>
     <div class="brand">GENIUSPARK<span>Астана · N-City</span></div>
     <div class="views" role="group" aria-label="Вид">
       <button type="button" data-v="persp" aria-pressed="true">3D</button>
@@ -114,10 +157,31 @@ details.fg .sw{margin-top:6px}
       <button type="button" data-v="top" aria-pressed="false">Сверху</button>
     </div>
     <div class="dims" id="dims"></div>
+    <button type="button" class="unfold" id="unfold" aria-pressed="false" hidden>Разложить</button>
     <div class="hint" id="hint">Крутите пальцем, щипок для зума</div>
   </div>
 
   <main class="panel">
+    <div class="seg mode" id="mode" role="group" aria-label="Режим">
+      <button type="button" data-mode="build" aria-pressed="true">Конструктор</button>
+      <button type="button" data-mode="room" aria-pressed="false">Примерка в комнате</button>
+    </div>
+    <section id="roomsec" class="roomsec" hidden>
+      <h2>Примерка дивана в вашей комнате</h2>
+      <p class="fact">Загрузите фото комнаты и поставьте диван на место. Перетаскивайте его пальцем или мышью, двумя пальцами меняйте размер.</p>
+      <label class="upload"><input type="file" id="rfile" accept="image/*">Загрузить фото комнаты</label>
+      <label class="rng">Размер<input type="range" id="rsize" min="15" max="100" value="55"></label>
+      <label class="rng">Поворот<input type="range" id="rangle" min="-110" max="110" value="45"></label>
+      <div class="row">
+        <button type="button" class="ghost" id="rflip">Отразить</button>
+        <button type="button" class="ghost" id="rcenter">По центру</button>
+        <button type="button" class="ghost" id="runfold" hidden>Разложить диван</button>
+        <button type="button" class="ghost" id="rsave">Сохранить картинку</button>
+        <button type="button" class="ghost" id="askai" hidden>Спросить AI по фото</button>
+      </div>
+      <p class="src" id="rmsg" role="status"></p>
+      <p class="src">Примерка показывает, как смотрится модель, но не точный масштаб. Точные размеры смотрите в режиме «Конструктор». Модель и ткань меняются ниже.</p>
+    </section>
     <div class="models" id="models" role="group" aria-label="Модель"></div>
     <h1 id="title"></h1>
     <p class="lead" id="mnote"></p>
@@ -160,6 +224,11 @@ details.fg .sw{margin-top:6px}
       <div id="legs"></div>
     </section>
 
+    <section id="decosec">
+      <h2>Декоративные подушки <small>для вида, в комплект не входят</small></h2>
+      <div class="seg" id="deco" role="group" aria-label="Декоративные подушки"></div>
+    </section>
+
     <section id="poufsec">
       <h2>Пуф <small id="poufsz"></small></h2>
       <div class="seg" id="pouf" role="group" aria-label="Пуф"></div>
@@ -178,6 +247,7 @@ details.fg .sw{margin-top:6px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
 {
 const $ = id => document.getElementById(id);
@@ -834,7 +904,7 @@ function presetState(key, i){
 }
 function defaults(key){
   const m = MODELS[key];
-  return Object.assign({model:key, leg:m.legs[0].id, pouf:'0', pillow:m.pillows ? m.pillows[0][0] : ''}, presetState(key, 0));
+  return Object.assign({model:key, leg:m.legs[0].id, pouf:'0', deco:'2', pillow:m.pillows ? m.pillows[0][0] : ''}, presetState(key, 0));
 }
 function valid(s){
   const m = s && MODELS[s.model];
@@ -842,13 +912,6 @@ function valid(s){
 }
 let st = defaults('hilton');
 try { const s = JSON.parse(localStorage.getItem('gp_cfg3') || 'null'); if (valid(s)) st = Object.assign(defaults(s.model), s); } catch (e) {}
-try {
-  const h = new URLSearchParams(location.hash.slice(1)), u = (h.get('u') || '').replace(/^https?:\/\/geniuspark\.ru\/catalog\//, ''), k = h.get('k') || '';
-  let hit = null;
-  for (const key in MODELS) { const i = MODELS[key].presets.findIndex(p => p[6] === u); if (u && i >= 0) { hit = [key, i]; break; } }
-  if (!hit && k) { const key = Object.keys(MODELS).find(x => MODELS[x].n === k) || Object.keys(MODELS).find(x => MODELS[x].mods.some(q => q.n === k)); if (key) hit = [key, Math.max(0, MODELS[key].presets.findIndex(p => p[0] === k))]; }
-  if (hit) st = Object.assign(defaults(hit[0]), presetState(hit[0], hit[1]));
-} catch (e) {}
 let hist = [];
 let size = [0, 0], lay = {csides:{}, pillows:0};
 
@@ -872,9 +935,57 @@ const cw = x => x.t === 'corner' ? x.sx : x.w;
 
 /* ---------- 3D ---------- */
 const view = $('view'), canvas = $('c');
-let R = null, scene, cam, sofa, fabMat, btnMat, legMat, brassMat, darkMat, baseMat, glowMat, dirty = true;
-let cv = {th:.65, ph:1.08, r:600}, tg = {th:.65, ph:1.08, r:600};
+let R = null, scene, cam, sofa, fabMat, decoMat, btnMat, legMat, brassMat, darkMat, baseMat, glowMat, shadowMat, dirty = true;
+let cv = {th:.65, ph:1.08, r:600}, tg = {th:.65, ph:1.08, r:600}, uT = 0, uCur = 0, lastT = 0;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* procedural fabric relief: one tileable normal map per fabric family */
+function noiseGrid(n, cell, rnd){
+  const g = n / cell, v = [];
+  for (let i = 0; i < g * g; i++) v.push(rnd());
+  return (x, y) => {
+    const fx = x / cell, fy = y / cell, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+    const at = (a, b) => v[((b % g + g) % g) * g + ((a % g + g) % g)];
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
+  };
+}
+function fabricNormal(kind){
+  const N = 256, h = new Float32Array(N * N);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const big = noiseGrid(N, 32, rnd), mid = noiseGrid(N, 8, rnd), fine = noiseGrid(N, 2, rnd);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let v;
+    if (kind === 'weave') {
+      const bx = Math.floor(x / 8), by = Math.floor(y / 8), horiz = (bx + by) % 2 === 0;
+      v = Math.sin(((horiz ? y : x) % 4) / 4 * Math.PI) * .8 + fine(x, y) * .35 + mid(x, y) * .25;
+    } else if (kind === 'chenille') v = big(x, y) * .12 + mid(x, y) * .6 + fine(x, y) * .5;
+    else if (kind === 'fur') v = mid(x, y) * .8 + fine(x, y) * 1.2;
+    else if (kind === 'suede') v = fine(x, y) * .35 + mid(x, y) * .2;
+    else v = big(x, y) * .08 + mid(x, y) * .18 + fine(x, y) * .6;
+    h[y * N + x] = v;
+  }
+  const k = {weave:2.6, chenille:2.2, fur:3, suede:1.2}[kind] || 1.6;
+  const c = document.createElement('canvas'); c.width = c.height = N;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(N, N);
+  const H = (x, y) => h[((y + N) % N) * N + ((x + N) % N)];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = (H(x - 1, y) - H(x + 1, y)) * k, dy = (H(x, y - 1) - H(x, y + 1)) * k, l = Math.hypot(dx, dy, 1);
+    img.data.set([(dx / l * .5 + .5) * 255, (dy / l * .5 + .5) * 255, (1 / l * .5 + .5) * 255, 255], (y * N + x) * 4);
+  }
+  ctx.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return t;
+}
+const KIND = t => /рогожка/.test(t) ? 'weave' : /шенилл/.test(t) ? 'chenille' : /мех/.test(t) ? 'fur' : /замша/.test(t) ? 'suede' : 'velour';
+const NORMALS = {};
+function contactBlob(){
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.shadowColor = 'rgba(0,0,0,1)'; x.shadowBlur = 16; x.shadowOffsetX = 1000;
+  x.fillStyle = '#000'; x.fillRect(38 - 1000, 38, 52, 52);
+  return new THREE.CanvasTexture(c);
+}
 
 function init3d(){
   if (!window.THREE) throw new Error('no three');
@@ -882,51 +993,83 @@ function init3d(){
   R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
   R.outputEncoding = THREE.sRGBEncoding;
+  R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = .78;
   scene = new THREE.Scene();
-  cam = new THREE.PerspectiveCamera(35, 1, 1, 9000);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc6b8, .78));
-  const sun = new THREE.DirectionalLight(0xffffff, .85);
-  sun.position.set(260, 460, 340); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, {left:-520, right:520, top:520, bottom:-520, near:10, far:1800});
-  sun.shadow.bias = -.0006;
-  scene.add(sun, sun.target);
-  const fill = new THREE.DirectionalLight(0xfff1e2, .28); fill.position.set(-320, 180, -120); scene.add(fill);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.ShadowMaterial({opacity:.17}));
-  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-  const tc = document.createElement('canvas'); tc.width = tc.height = 128;
-  const x = tc.getContext('2d'), img = x.createImageData(128, 128);
-  for (let i = 0; i < 128 * 128; i++) {
-    const px = i % 128, py = (i / 128) | 0;
-    const v = clamp(232 + Math.random() * 22 - ((px + py) % 3 === 0 ? 9 : 0) - (py % 4 === 0 ? 5 : 0), 0, 255);
-    img.data.set([v, v, v, 255], i * 4);
+  cam = new THREE.PerspectiveCamera(32, 1, 1, 9000);
+  if (THREE.RoomEnvironment) {
+    try { const pm = new THREE.PMREMGenerator(R); scene.environment = pm.fromScene(new THREE.RoomEnvironment(), .04).texture; pm.dispose(); } catch (e) {}
   }
-  x.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(tc);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(.1, .1); tex.encoding = THREE.sRGBEncoding;
-  fabMat = new THREE.MeshStandardMaterial({map:tex, roughness:.93, metalness:0});
+  const env = !!scene.environment;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc6b8, env ? .3 : .78));
+  const sun = new THREE.DirectionalLight(0xfff6ea, env ? .95 : .85);
+  sun.position.set(220, 520, 300); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, {left:-520, right:520, top:520, bottom:-520, near:10, far:1800});
+  sun.shadow.bias = -.0004; sun.shadow.normalBias = .6;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0xe8eeff, env ? .18 : .28); fill.position.set(-320, 180, -120); scene.add(fill);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.ShadowMaterial({opacity:.13}));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  for (const k of ['velour', 'chenille', 'weave', 'fur', 'suede']) NORMALS[k] = fabricNormal(k);
+  fabMat = new THREE.MeshPhysicalMaterial({roughness:.9, metalness:0, normalMap:NORMALS.velour, normalScale:new THREE.Vector2(.3, .3), envMapIntensity:.55});
+  fabMat.sheen = new THREE.Color(0, 0, 0);
+  decoMat = new THREE.MeshPhysicalMaterial({roughness:.92, normalMap:NORMALS.chenille, normalScale:new THREE.Vector2(.35, .35), envMapIntensity:.5});
+  decoMat.sheen = new THREE.Color(.1, .1, .1);
   btnMat = new THREE.MeshStandardMaterial({roughness:.8});
-  legMat = new THREE.MeshStandardMaterial({roughness:.45, metalness:.1});
-  brassMat = new THREE.MeshStandardMaterial({color:new THREE.Color('#b8924a').convertSRGBToLinear(), roughness:.35, metalness:.8});
+  legMat = new THREE.MeshStandardMaterial({roughness:.5, metalness:.1});
+  brassMat = new THREE.MeshStandardMaterial({color:new THREE.Color('#b8924a').convertSRGBToLinear(), roughness:.3, metalness:.9});
   darkMat = new THREE.MeshStandardMaterial({color:new THREE.Color('#222').convertSRGBToLinear(), roughness:.8});
-  baseMat = new THREE.MeshStandardMaterial({roughness:.5});
-  glowMat = new THREE.MeshBasicMaterial({color:new THREE.Color('#ffd9a0'), transparent:true, opacity:.55});
+  baseMat = new THREE.MeshPhysicalMaterial({roughness:.35, clearcoat:.4});
+  glowMat = new THREE.MeshBasicMaterial({color:new THREE.Color('#ffd9a0'), transparent:true, opacity:.55, toneMapped:false});
+  shadowMat = new THREE.MeshBasicMaterial({map:contactBlob(), transparent:true, depthWrite:false, opacity:.5});
   fabMat.side = THREE.DoubleSide;
   sofa = new THREE.Group(); scene.add(sofa);
 }
 
-function rbox(w, h, d, r){
+/* soft upholstered box: rounded edges, optional stuffing bulge, cm-based uvs, welded normals */
+const GC = new Map();
+function rbox(w, h, d, r, bulge){
+  bulge = bulge || 0;
   r = Math.max(.3, Math.min(r, w / 2 - .3, h / 2 - .3, d / 2 - .3));
-  const iw = w - 2 * r, ih = h - 2 * r, cr = Math.min(r * .6, iw / 2 - .01, ih / 2 - .01);
-  const s = new THREE.Shape(), x = -iw / 2, y = -ih / 2;
-  if (cr > .1) {
-    s.moveTo(x + cr, y); s.lineTo(x + iw - cr, y); s.quadraticCurveTo(x + iw, y, x + iw, y + cr);
-    s.lineTo(x + iw, y + ih - cr); s.quadraticCurveTo(x + iw, y + ih, x + iw - cr, y + ih);
-    s.lineTo(x + cr, y + ih); s.quadraticCurveTo(x, y + ih, x, y + ih - cr);
-    s.lineTo(x, y + cr); s.quadraticCurveTo(x, y, x + cr, y);
-  } else { s.moveTo(x, y); s.lineTo(x + iw, y); s.lineTo(x + iw, y + ih); s.lineTo(x, y + ih); s.lineTo(x, y); }
-  const g = new THREE.ExtrudeGeometry(s, {depth:Math.max(.1, d - 2 * r), bevelEnabled:true, bevelThickness:r, bevelSize:r, bevelSegments:3, curveSegments:4});
-  g.center(); return g;
+  const key = [w, h, d, r, bulge].map(v => Math.round(v * 10)).join('_');
+  if (GC.has(key)) return GC.get(key);
+  const seg = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.ceil(v / 6)));
+  const g = new THREE.BoxGeometry(w, h, d, seg(w, 4, 18), seg(h, 3, 12), seg(d, 4, 18));
+  const P = g.attributes.position, N0 = g.attributes.normal, UV = g.attributes.uv, hx = w / 2, hy = h / 2, hz = d / 2, S = 26;
+  const remap = (v, hh) => { const u = v / hh; return Math.sign(u) * (1 - Math.pow(Math.max(0, 1 - Math.abs(u)), 1.8)) * hh; };
+  for (let i = 0; i < P.count; i++) {
+    let x = remap(P.getX(i), hx), y = remap(P.getY(i), hy), z = remap(P.getZ(i), hz);
+    const ix = clamp(x, -(hx - r), hx - r), iy = clamp(y, -(hy - r), hy - r), iz = clamp(z, -(hz - r), hz - r);
+    const dx = x - ix, dy = y - iy, dz = z - iz, L = Math.hypot(dx, dy, dz);
+    if (L > 1e-6) { x = ix + dx / L * r; y = iy + dy / L * r; z = iz + dz / L * r; }
+    const nx = N0.getX(i), ny = N0.getY(i), nz = N0.getZ(i);
+    if (bulge) {
+      const fx = Math.max(0, 1 - (x / hx) ** 2), fy = Math.max(0, 1 - (y / hy) ** 2), fz = Math.max(0, 1 - (z / hz) ** 2);
+      if (ny) y += ny * bulge * fx * fz; else if (nz) z += nz * bulge * .6 * fx * fy; else x += nx * bulge * .4 * fy * fz;
+    }
+    P.setXYZ(i, x, y, z);
+    if (ny) UV.setXY(i, x / S, z / S); else if (nz) UV.setXY(i, x / S, y / S); else UV.setXY(i, z / S, y / S);
+  }
+  const idx = g.index.array, acc = new Map(), keys = new Array(P.count);
+  for (let i = 0; i < P.count; i++) keys[i] = Math.round(P.getX(i) * 40) + ',' + Math.round(P.getY(i) * 40) + ',' + Math.round(P.getZ(i) * 40);
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  for (let t = 0; t < idx.length; t += 3) {
+    a.fromBufferAttribute(P, idx[t]); b.fromBufferAttribute(P, idx[t + 1]); c.fromBufferAttribute(P, idx[t + 2]);
+    b.sub(a); c.sub(a); b.cross(c);
+    for (let q = 0; q < 3; q++) { const k = keys[idx[t + q]], v = acc.get(k); if (v) v.add(b); else acc.set(k, b.clone()); }
+  }
+  const Nn = g.attributes.normal;
+  for (let i = 0; i < P.count; i++) { const v = acc.get(keys[i]); v.lengthSq() > 0 && v.normalize(); Nn.setXYZ(i, v.x, v.y, v.z); }
+  g.userData.cached = true;
+  GC.set(key, g);
+  return g;
 }
+function blob(g, x0, w, d){
+  if (!R) return;
+  const op = Math.max(.18, .55 - (M().legH || 0) * .025);
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.9 + 10, d * 1.9 + 10), shadowMat);
+  p.rotation.x = -Math.PI / 2; p.position.set(x0 + w / 2, .15, d / 2); p.renderOrder = -1; p.material.opacity = op; g.add(p);
+}
+
 function mesh(g, geo, mat, x, y, z){ const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; }
 const bb = () => M().legH || 3;
 
@@ -956,16 +1099,16 @@ function legs(g, x0, w, d){
 }
 /* a run of backrest along local +x from (ax, az), back at local z = 0, seat in front (+z) */
 function backRun(g, ax, az, rot, len, n, roll){
-  const m = M(), sg = new THREE.Group(); sg.position.set(ax, 0, az); sg.rotation.y = rot; g.add(sg);
+  const m = M(), sg = new THREE.Group(); sg.position.set(ax, 0, az); sg.rotation.y = rot; g.add(sg); lastBack = sg;
   const BT = m.BT, seatTop = m.baseTop + m.cush;
   if (m.back === 'loose') {
     const bh = m.H - m.baseTop - (roll ? 12 : 0), fh = Math.min(bh * .55, 30);
     mesh(sg, rbox(len - 1, fh, 6, 2), fabMat, len / 2, m.baseTop + fh / 2, 3);
     const w = (len - 2) / n;
     for (let i = 0; i < n; i++) {
-      const cx = 1 + w * (i + .5), c = mesh(sg, rbox(w - 1, bh, BT - 4, 6), fabMat, cx, m.baseTop + bh / 2, BT / 2 + 1); c.rotation.x = -.1;
+      const cx = 1 + w * (i + .5), c = mesh(sg, rbox(w - 1, bh, BT - 4, 7, 3.2), fabMat, cx, m.baseTop + bh / 2, BT / 2 + 1); c.rotation.x = -.1;
       if (m.tuftBack) for (const fx of [-.25, 0, .25]) for (const fy of [.42, .72]) { const t = mesh(sg, new THREE.SphereGeometry(1.1, 8, 6), btnMat, cx + w * fx, m.baseTop + bh * fy, BT - 1 - bh * fy * .1); t.castShadow = false; }
-      if (m.lumbar) { const l = mesh(sg, rbox(Math.min(w - 12, 70), 26, 11, 5), fabMat, cx, m.baseTop + m.cush + 13, BT + 6); l.rotation.x = -.2; }
+      if (m.lumbar) { const l = mesh(sg, rbox(Math.min(w - 12, 70), 26, 11, 5, 2.5), fabMat, cx, m.baseTop + m.cush + 13, BT + 6); l.rotation.x = -.2; }
     }
     if (roll) { const c = mesh(sg, new THREE.CylinderGeometry(6, 6, Math.min(77, len - 4), 20), fabMat, len / 2, m.baseTop + bh + 4.5, BT / 2 - 1); c.rotation.z = Math.PI / 2; }
     return 0;
@@ -981,7 +1124,7 @@ function backRun(g, ax, az, rot, len, n, roll){
   mesh(sg, rbox(len - 1, fh, BT, 4), fabMat, len / 2, m.baseTop + fh / 2, BT / 2);
   if (m.back === 'headrest') {
     const k = Math.max(1, Math.round(len / 80)), w = (len - 4) / k;
-    for (let i = 0; i < k; i++) mesh(sg, rbox(w - 3, m.H - m.frameTop + 2, 12, 5), fabMat, 2 + w * (i + .5), m.frameTop - 2 + (m.H - m.frameTop + 2) / 2, BT / 2 + 1);
+    for (let i = 0; i < k; i++) mesh(sg, rbox(w - 3, m.H - m.frameTop + 2, 12, 5, 1.8), fabMat, 2 + w * (i + .5), m.frameTop - 2 + (m.H - m.frameTop + 2) / 2, BT / 2 + 1);
     return 0;
   }
   let k = n, pw = (len - 4) / n, ph = m.H - seatTop - 2;
@@ -990,15 +1133,17 @@ function backRun(g, ax, az, rot, len, n, roll){
     k = Math.max(1, Math.round((len - 4) / p[2])); pw = Math.min(p[2], (len - 4) / k); ph = Math.min(p[3], m.H - seatTop + 4);
   }
   const step = (len - 4) / k;
-  for (let i = 0; i < k; i++) { const c = mesh(sg, rbox(pw - 2, ph, 16, 7), fabMat, 2 + step * (i + .5), seatTop + ph / 2 - 1, BT + 8); c.rotation.x = -.22; }
+  for (let i = 0; i < k; i++) { const c = mesh(sg, rbox(pw - 2, ph, 16, 7, 3.5), fabMat, 2 + step * (i + .5), seatTop + ph / 2 - 1, BT + 8); c.rotation.x = -.22; }
   return k;
 }
-function seatBlock(g, x0, w, d, n, back, roll){
+let lastBack = null;
+function seatBlock(g, x0, w, d, n, back, roll, sleep){
   const m = M(), b = bb(), BT = m.BT;
-  mesh(g, rbox(w - 1, m.baseTop - b, d - 1, 3), m.baseColor ? baseMat : fabMat, x0 + w / 2, b + (m.baseTop - b) / 2, d / 2);
-  const z0 = back ? BT : 2, dz = d - z0 - 1;
+  mesh(g, rbox(w - 1, m.baseTop - b, d - 1, 3, .6), m.baseColor ? baseMat : fabMat, x0 + w / 2, b + (m.baseTop - b) / 2, d / 2);
+  blob(g, x0, w, d);
+  const z0 = back ? BT : 2, dz = d - z0 - 1, before = g.children.length;
   if (m.seat === 'slab') {
-    mesh(g, rbox(w - 2, m.cush, dz - 2, 4), fabMat, x0 + w / 2, m.baseTop + m.cush / 2, z0 + dz / 2);
+    mesh(g, rbox(w - 2, m.cush, dz - 2, 4, 1.6), fabMat, x0 + w / 2, m.baseTop + m.cush / 2, z0 + dz / 2);
     const k = Math.max(1, Math.round(w / 76));
     for (let i = 1; i < k; i++) mesh(g, new THREE.BoxGeometry(.7, .6, dz - 8), btnMat, x0 + w * i / k, m.baseTop + m.cush + .05, z0 + dz / 2);
     if (m.seatQuilt) { for (let x = 20; x < w - 6; x += 20) mesh(g, new THREE.BoxGeometry(.5, .5, dz - 8), btnMat, x0 + x, m.baseTop + m.cush + .05, z0 + dz / 2); for (let z = 18; z < dz - 6; z += 18) mesh(g, new THREE.BoxGeometry(w - 8, .5, .5), btnMat, x0 + w / 2, m.baseTop + m.cush + .05, z0 + z); }
@@ -1006,16 +1151,72 @@ function seatBlock(g, x0, w, d, n, back, roll){
     const cwid = (w - 2) / n;
     for (let i = 0; i < n; i++) {
       const cx = x0 + 1 + cwid * (i + .5);
-      mesh(g, rbox(cwid - 1, m.cush, dz - 2, 5), fabMat, cx, m.baseTop + m.cush / 2, z0 + dz / 2);
+      mesh(g, rbox(cwid - 1, m.cush, dz - 2, 5, 2.6), fabMat, cx, m.baseTop + m.cush / 2, z0 + dz / 2);
       if (m.tuft) for (const fx of [-.22, .22]) for (const fz of [.33, .66]) mesh(g, new THREE.SphereGeometry(1.1, 8, 6), btnMat, cx + cwid * fx, m.baseTop + m.cush + .1, z0 + dz * fz);
     }
   }
-  return back ? backRun(g, x0, 0, 0, w, n, roll) : 0;
+  const seats = g.children.slice(before);
+  lastBack = null;
+  const cnt = back ? backRun(g, x0, 0, 0, w, n, roll) : 0;
+  if (sleep && sleep.len && R && back) addUnfold(g, x0, w, d, z0, seats, sleep);
+  return cnt;
 }
+/* sleeping mechanisms: roll = seat rolls forward; dolphin = platform slides out and lifts; fall = seat forward, backrest drops flat */
+function sleepInfo(x){
+  if (!x.sleep) return null;
+  const nums = (x.sleep.match(/(\d+)\s*×\s*(\d+)/) || []).slice(1).map(Number);
+  let len = nums.length < 2 ? (x.sleep.includes('кресло') ? 0 : 190) : Math.abs(nums[0] - x.w) <= 3 ? nums[1] : Math.abs(nums[1] - x.w) <= 3 ? nums[0] : Math.max(...nums);
+  const type = /Дельфин/.test(x.sleep) ? 'dolphin' : /Аккордеон|Тик-так|Пантограф|Еврокнижка|Evrodream/.test(x.sleep) ? 'fall' : 'roll';
+  return {len, type};
+}
+function addUnfold(g, x0, w, d, z0, seats, sl){
+  const m = M(), b = bb(), seatTop = m.baseTop + m.cush, depth = d - z0;
+  let ext = sl.len - depth; if (ext < 8) return;
+  const u = {type:sl.type, seats:seats.map(o => [o, o.position.z]), ext, d, z0, b, depth};
+  if (sl.type === 'dolphin') {
+    u.h0 = m.baseTop - b - 1.5; u.h1 = seatTop - b - .8;
+    u.panel = mesh(g, rbox(w - 4, u.h1, ext, 3, .8), fabMat, x0 + w / 2, 0, 0);
+  } else {
+    if (sl.type === 'fall' && lastBack) {
+      const pv = new THREE.Group(), py = seatTop - m.BT + 1, pz = m.BT;
+      pv.position.set(0, py, pz);
+      [...lastBack.children].forEach(c => { c.position.y -= py; c.position.z -= pz; pv.add(c); });
+      lastBack.add(pv); u.pivot = pv;
+      ext = u.ext = Math.max(ext, m.H - m.baseTop + m.BT - m.cush + 2);
+    } else u.type = 'roll';
+    u.L = depth + ext;
+    const hh = seatTop - b - 1.5;
+    u.panel = mesh(g, rbox(w - 4, hh, u.L, 3, .6), fabMat, x0 + w / 2, b + hh / 2, 0);
+  }
+  u.panel.visible = false;
+  (g.userData.unfold = g.userData.unfold || []).push(u);
+  lay.maxExt = Math.max(lay.maxExt || 0, ext);
+}
+function applyUnfold(){
+  if (!R) return;
+  const t = uCur, ez = v => v * v * (3 - 2 * v), ph = (a, b) => ez(clamp((t - a) / (b - a), 0, 1));
+  sofa.traverse(o => (o.userData.unfold || []).forEach(u => {
+    u.panel.visible = t > .004;
+    if (u.type === 'dolphin') {
+      const s1 = ph(0, .6), h = u.h0 + (u.h1 - u.h0) * ph(.55, 1);
+      u.panel.scale.y = h / u.h1; u.panel.position.y = u.b + h / 2;
+      u.panel.position.z = u.d - u.ext / 2 - 1.5 + (u.ext + 1.5) * s1;
+    } else {
+      const s1 = u.pivot ? ph(0, .62) : ph(0, 1);
+      u.seats.forEach(([q, z]) => { q.position.z = z + u.ext * s1; });
+      const len = u.depth - 3 + (u.ext + 3) * s1;
+      u.panel.scale.z = len / u.L; u.panel.position.z = u.z0 + 1 + len / 2;
+      if (u.pivot) u.pivot.rotation.x = ph(.38, 1) * Math.PI / 2;
+    }
+  }));
+  (lay.deco || []).forEach(p => { p.visible = t < .03; });
+}
+
 function cornerBlock(g, x){
   const m = M(), b = bb(), BT = m.BT, sx = x.sx, sz = x.sz;
-  mesh(g, rbox(sx - 1, m.baseTop - b, sz - 1, 3), fabMat, sx / 2, b + (m.baseTop - b) / 2, sz / 2);
-  mesh(g, rbox(sx - BT - 2, m.cush, sz - BT - 2, 5), fabMat, (sx - BT) / 2, m.baseTop + m.cush / 2, BT + (sz - BT) / 2);
+  mesh(g, rbox(sx - 1, m.baseTop - b, sz - 1, 3, .6), fabMat, sx / 2, b + (m.baseTop - b) / 2, sz / 2);
+  blob(g, 0, sx, sz);
+  mesh(g, rbox(sx - BT - 2, m.cush, sz - BT - 2, 5, 2.6), fabMat, (sx - BT) / 2, m.baseTop + m.cush / 2, BT + (sz - BT) / 2);
   let p = 0;
   if (m.diag && sx >= 150) {
     const cut = sx - m.D, L = sx - cut;
@@ -1025,13 +1226,14 @@ function cornerBlock(g, x){
   return p;
 }
 function armBlock(g, x0, a, len, out){
+  blob(g, x0, a.w, len);
   const b = bb(), w = a.w, h = a.h;
   if (a.roundTop) {
     mesh(g, rbox(w - 4, h - b - 8, len - 1, 4), fabMat, x0 + w / 2 + (out || 0) * 2, b + (h - b - 8) / 2, len / 2);
     const r = mesh(g, new THREE.CylinderGeometry(w / 2 + 1, w / 2 + 1, len - 2, 24), fabMat, x0 + w / 2 + (out || 0) * 3, h - w / 2, len / 2); r.rotation.x = Math.PI / 2;
     return;
   }
-  const blk = mesh(g, rbox(w, h - b, len - 1, a.fig ? Math.min(10, w / 2) : Math.min(6, w / 2)), fabMat, x0 + w / 2, b + (h - b) / 2, len / 2);
+  const blk = mesh(g, rbox(w, h - b, len - 1, a.fig ? Math.min(10, w / 2) : Math.min(6, w / 2), w > 8 ? 1 : 0), fabMat, x0 + w / 2, b + (h - b) / 2, len / 2);
   if (a.flare && out) { blk.rotation.z = -out * .08; blk.position.x += out * 2; }
   if (a.plank) mesh(g, new THREE.BoxGeometry(w + 1, 1.6, len - 6), legMat, x0 + w / 2, h + .8, len / 2);
 }
@@ -1064,7 +1266,7 @@ function customBuild(m, pts){
     const rimG = new THREE.Group(); rimG.rotation.y = (125 + 90) * Math.PI / 180; g.add(rimG);
     const rim = mesh(rimG, new THREE.TorusGeometry(Rr - 4, 4, 12, 48, arc), fabMat, 0, m.H - 4, 0); rim.rotation.x = Math.PI / 2;
     for (const sgn of [-1, 1]) mesh(g, new THREE.CylinderGeometry(4, 4, bh, 16), fabMat, sgn * (Rr - 4) * Math.sin(arc / 2), m.baseTop + bh / 2, (Rr - 4) * Math.cos(Math.PI - arc / 2));
-    const l = mesh(g, rbox(46, 18, 10, 5), fabMat, 0, m.baseTop + m.cush + 10, -Rr + 16); l.rotation.x = -.25;
+    const l = mesh(g, rbox(46, 18, 10, 5, 2.5), fabMat, 0, m.baseTop + m.cush + 10, -Rr + 16); l.rotation.x = -.25;
   }
   pts.push([-Rr, -Rr], [Rr, Rr]);
 }
@@ -1076,9 +1278,9 @@ function build(){
   segs[segs.length - 1] += A.R ? A.R.w : 0;
   const cs = segs.length - 1, k = cs === 2 ? 1 : segs.indexOf(Math.max(...segs));
   let px = 0, pz = 0, th = k * Math.PI / 2, j = 0, pil = 0;
-  lay.csides = {};
+  lay.csides = {}; lay.maxExt = 0; lay.deco = [];
   const pts = [], all = [];
-  if (R) { sofa.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); while (sofa.children.length) sofa.remove(sofa.children[0]); }
+  if (R) { sofa.traverse(o => { if (o.isMesh && !o.geometry.userData.cached) o.geometry.dispose(); }); while (sofa.children.length) sofa.remove(sofa.children[0]); if (GC.size > 500) { GC.forEach(q => q.dispose()); GC.clear(); } }
   if (m.custom) customBuild(m, pts);
   else list.forEach((x, i) => {
     const c = Math.cos(th), s = Math.sin(th), w = cw(x), d = depth(x);
@@ -1091,7 +1293,12 @@ function build(){
         const side = i === 0 && n > 1 ? 'l' : 'r', aw = x.arm ? x.arm.w : 0, sx = side === 'l' ? aw : 0;
         pil += seatBlock(g, sx, x.w - aw, d, 1, x.back, m.roll && i === 0); legs(g, 0, x.w, d);
         if (x.arm) armBlock(g, side === 'l' ? 0 : x.w - aw, x.arm, d * x.arm.len);
-      } else { pil += seatBlock(g, 0, x.w, d, x.c, x.back !== false, m.roll && i === 0); legs(g, 0, x.w, d); }
+      } else { pil += seatBlock(g, 0, x.w, d, x.c, x.back !== false, m.roll && i === 0, sleepInfo(x)); legs(g, 0, x.w, d); }
+      if (st.deco === '2' && (i === 0 || i === n - 1) && x.t !== 'corner' && x.back !== false) {
+        const aw = x.arm ? x.arm.w : 0, sideL = i === 0 && n > 1;
+        const ends = n === 1 ? (x.w >= 140 ? [26, x.w - 26] : [x.w / 2]) : [sideL ? aw + 26 : x.w - aw - 26];
+        ends.forEach(ex => { const p = mesh(g, rbox(44, 42, 14, 6.7, 2.4), decoMat, ex, m.baseTop + m.cush + 20, m.back === 'frame' ? m.BT + 24 : m.BT + 12); lay.deco.push(p); p.rotation.set(-.32, ex < x.w / 2 ? .28 : -.28, ex < x.w / 2 ? -.06 : .06); });
+      }
       if (i === 0 && A.L) { armBlock(g, -A.L.w, A.L, d, -1); legs(g, -A.L.w, A.L.w, d); }
       if (i === n - 1 && A.R) { armBlock(g, w, A.R, d, 1); legs(g, w, A.R.w, d); }
     }
@@ -1114,18 +1321,25 @@ function build(){
   }
   const [a0, a1, b0, b1] = ext(all);
   size.full = [a1 - a0, b1 - b0];
-  if (R) { sofa.position.set(-(a0 + a1) / 2, 0, -(b0 + b1) / 2); fit(); dirty = true; }
+  if (R) { sofa.position.set(-(a0 + a1) / 2, 0, -(b0 + b1) / 2); applyUnfold(); fit(); dirty = true; }
 }
 function fit(){
   const a = view.clientWidth / Math.max(1, view.clientHeight);
   const v = 35 * Math.PI / 180, f = Math.min(v, 2 * Math.atan(Math.tan(v / 2) * a));
-  const rad = Math.hypot(size.full[0], size.full[1], M().H) / 2 + 25;
+  const rad = Math.hypot(size.full[0], size.full[1] + (lay.maxExt || 0) * uT, M().H) / 2 + 25;
   tg.r = clamp(rad / Math.sin(f / 2) * .9, 220, 2600);
 }
 function colors(){
   if (!R) return;
   const hex = FAB[st.fab][0];
   fabMat.color.set(hex).convertSRGBToLinear();
+  const kind = KIND(FAB[st.fab][1]);
+  fabMat.normalMap = NORMALS[kind];
+  fabMat.normalScale.setScalar({velour:.22, chenille:.42, weave:.6, fur:.7, suede:.15}[kind]);
+  fabMat.roughness = {velour:.8, chenille:.92, weave:.96, fur:.95, suede:.88}[kind];
+  fabMat.sheen.copy(fabMat.color).lerp(new THREE.Color(1, 1, 1), .35).multiplyScalar({velour:.6, chenille:.3, weave:.06, fur:.35, suede:.2}[kind]);
+  const c0 = new THREE.Color(hex), lum = c0.r * .3 + c0.g * .59 + c0.b * .11;
+  decoMat.color.set(lum < .5 ? '#e9e3d7' : lum > .8 ? '#8c7a69' : '#5d5248').convertSRGBToLinear();
   btnMat.color.set(hex).convertSRGBToLinear().multiplyScalar(.55);
   legMat.color.set((M().legs.find(l => l.id === st.leg) || M().legs[0]).c).convertSRGBToLinear();
   legMat.metalness = /хром|золото|бронза|сталь/.test((M().legs.find(l => l.id === st.leg) || M().legs[0]).n) ? .75 : .1;
@@ -1141,6 +1355,8 @@ function loop(){
   const k = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : .14;
   let moved = false;
   for (const p of ['th', 'ph', 'r']) { const d = tg[p] - cv[p]; if (Math.abs(d) > 1e-4) { cv[p] += d * k; moved = true; } else cv[p] = tg[p]; }
+  const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+  if (Math.abs(uT - uCur) > .0005) { uCur += Math.sign(uT - uCur) * Math.min(Math.abs(uT - uCur), k >= 1 ? 1 : dt / 1.7); applyUnfold(); moved = true; }
   if (moved || dirty) { placeCam(); R.render(scene, cam); dirty = false; }
   requestAnimationFrame(loop);
 }
@@ -1148,6 +1364,7 @@ function resize(){
   if (!R) return;
   const w = view.clientWidth, h = view.clientHeight;
   R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); fit(); dirty = true;
+  roomSize();
 }
 function setView(v){
   const p = VIEWS[v]; if (!p) return;
@@ -1160,7 +1377,7 @@ function hideHint(){ $('hint').classList.add('off'); }
 /* ---------- logic ---------- */
 function commit(){
   try { localStorage.setItem('gp_cfg3', JSON.stringify(st)); } catch (e) {}
-  build(); colors(); ui();
+  build(); colors(); ui(); refreshRoom();
 }
 function change(fn){ hist.push(JSON.stringify(st)); if (hist.length > 40) hist.shift(); fn(); commit(); }
 const isC = id => mod(id).t === 'corner', isO = id => mod(id).t === 'ot';
@@ -1258,10 +1475,19 @@ function ui(){
   $('legtitle').textContent = m.legTitle || 'Опоры';
   $('legs').innerHTML = m.legs.length === 1 ? `<p class="fact">${m.legs[0].n}</p>`
     : `<div class="chips">${m.legs.map(l => `<button type="button" class="chip leg" data-leg="${l.id}" style="--c:${l.c}" aria-pressed="${l.id === st.leg}"><i></i>${l.n}</button>`).join('')}</div>`;
+  $('decosec').hidden = !!m.custom || st.model === 'pufy';
+  $('deco').innerHTML = [['0', 'Без'], ['2', 'Показать']].map(o => `<button type="button" data-deco="${o[0]}" aria-pressed="${o[0] === (st.deco || '2')}">${o[1]}</button>`).join('');
   $('poufsec').hidden = !m.pouf;
   if (m.pouf) { $('poufsz').textContent = m.pouf.n; $('pouf').innerHTML = POUF.map(o => `<button type="button" data-pouf="${o[0]}" aria-pressed="${o[0] === st.pouf}">${o[1]}</button>`).join(''); }
 
-  $('dims').innerHTML = `Ш <b>${size[0]}</b> × Г <b>${size[1]}</b> × В <b>${HH}</b> см`;
+  const canUnfold = !!R && (lay.maxExt || 0) > 0;
+  $('unfold').hidden = !canUnfold || mode === 'room'; if (!canUnfold) uT = 0;
+  $('runfold').hidden = !canUnfold; $('runfold').textContent = uT ? 'Сложить диван' : 'Разложить диван';
+  $('wa').lastChild.textContent = mode === 'room' ? 'Обсудить модель в WhatsApp' : 'Отправить сборку в WhatsApp';
+  $('share').lastChild.textContent = mode === 'room' ? 'Отправить фото примерки' : 'Отправить с картинкой 3D';
+  $('unfold').textContent = uT ? 'Сложить' : 'Разложить';
+  $('unfold').setAttribute('aria-pressed', String(!!uT));
+  $('dims').innerHTML = uT && canUnfold ? `Разложен: <b>${[...new Set(list.filter(x => x.sleep).map(x => x.sleep))].join('; ')}</b>` : `Ш <b>${size[0]}</b> × Г <b>${size[1]}</b> × В <b>${HH}</b> см`;
   const sleep = [...new Set(list.filter(x => x.sleep).map(x => x.sleep))];
   const leg = (m.legs.find(l => l.id === st.leg) || m.legs[0]).n;
   const armTxt = s => { const a = A[s], why = armAllowed(s, st.mods); return a ? a.n.toLowerCase() : why === 'в оттоманке' ? 'в оттоманке' : 'нет'; };
@@ -1278,7 +1504,7 @@ function ui(){
   if (m.needArms && ((!A.L && !armAllowed('L', st.mods)) || (!A.R && !armAllowed('R', st.mods)))) warn = 'Без подлокотников Денвер не изготавливают.';
   $('warn').hidden = !warn; $('warn').textContent = warn;
   msgText = [
-    'Здравствуйте, Казыбек! Собрал(а) диван в конструкторе Geniuspark.',
+    mode === 'room' ? `Здравствуйте! Примерил(а) диван «${m.n}» на сайте, хочу узнать цену и наличие.` : 'Здравствуйте, Казыбек! Собрал(а) диван в конструкторе Geniuspark.',
     `Модель: ${m.n}, ${shape}`,
     `Модули слева направо: ${modsTxt}`,
     m.fixed ? '' : `Комплектация: ${code}`,
@@ -1296,6 +1522,12 @@ function ui(){
 
 /* ---------- picture to share ---------- */
 function snapshot(){
+  if (mode === 'room') {
+    const c = document.createElement('canvas'); c.width = RW; c.height = RH; const x = c.getContext('2d'); drawRoom(); x.drawImage(rc, 0, 0);
+    const t = `GENIUSPARK · ${$('title').textContent} · ${st.fab}`; x.font = '600 24px Inter, Arial, sans-serif';
+    const tw = x.measureText(t).width; x.fillStyle = 'rgba(255,255,255,.9)'; x.fillRect(24, RH - 70, tw + 36, 46); x.fillStyle = '#1c1c1e'; x.fillText(t, 42, RH - 39);
+    return c;
+  }
   const m = M(), list = st.mods.map(mod), W = 1200, H = 900, c = document.createElement('canvas');
   c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -1328,10 +1560,109 @@ function shareImage(){
   }
 }
 
+/* ---------- room try-on: the configured sofa placed on a photo of the client's room ---------- */
+const AI_ENDPOINT = ''; // позже: адрес сервера для кнопки «Спросить AI по фото» (см. askAI ниже)
+let mode = 'build';
+const room = {img:null, x:.5, y:.66, scale:.55, flip:false, angle:.45, sprite:null};
+const rc = $('room'), rx = rc.getContext('2d'), RW = 1200, RH = 800;
+function captureSprite(){
+  room.sprite = null;
+  if (!R) return;
+  const pr = R.getPixelRatio(), keep = {th:cv.th, ph:cv.ph, r:cv.r};
+  try {
+    R.setPixelRatio(1); R.setSize(RW, RH, false); cam.aspect = RW / RH; cam.updateProjectionMatrix();
+    const v = 32 * Math.PI / 180, rad = Math.hypot(size.full[0], size.full[1] + (lay.maxExt || 0) * uCur, M().H) / 2 + 25;
+    cv.th = room.angle; cv.ph = 1.3; cv.r = rad / Math.sin(v / 2) * 1.3;
+    placeCam(); R.render(scene, cam);
+    const c = document.createElement('canvas'); c.width = RW; c.height = RH;
+    const x = c.getContext('2d'); x.drawImage(R.domElement, 0, 0);
+    const d = x.getImageData(0, 0, RW, RH).data; let x0 = RW, x1 = 0, y0 = RH, y1 = 0;
+    for (let py = 0; py < RH; py += 2) for (let px = 0; px < RW; px += 2) if (d[(py * RW + px) * 4 + 3] > 12) { if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+    if (x1 > x0) { const s = document.createElement('canvas'); s.width = x1 - x0 + 2; s.height = y1 - y0 + 2; s.getContext('2d').drawImage(c, -x0, -y0); room.sprite = s; }
+  } catch (e) {}
+  Object.assign(cv, keep); R.setPixelRatio(pr); resize();
+}
+function demoRoom(){
+  const hz = RH * .64;
+  let g = rx.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, '#eceef1'); g.addColorStop(1, '#dde1e6');
+  rx.fillStyle = g; rx.fillRect(0, 0, RW, hz);
+  g = rx.createLinearGradient(0, hz, 0, RH); g.addColorStop(0, '#c9b69d'); g.addColorStop(1, '#b9a488');
+  rx.fillStyle = g; rx.fillRect(0, hz, RW, RH - hz);
+  rx.strokeStyle = 'rgba(255,255,255,.16)'; rx.lineWidth = 2;
+  for (let i = -6; i <= 18; i++) { rx.beginPath(); rx.moveTo(RW / 2 + (i - 6) * 70, hz); rx.lineTo(RW / 2 + (i - 6) * 260, RH); rx.stroke(); }
+  rx.fillStyle = '#f6f6f4'; rx.fillRect(0, hz - 12, RW, 14);
+  rx.fillStyle = '#cfd4da'; rx.fillRect(860, 110, 190, 250); rx.fillStyle = '#f4f5f6'; rx.fillRect(876, 126, 158, 218);
+}
+function drawRoom(){
+  rx.clearRect(0, 0, RW, RH);
+  if (room.img) { const im = room.img, k = Math.max(RW / im.width, RH / im.height), w = im.width * k, h = im.height * k; rx.drawImage(im, (RW - w) / 2, (RH - h) / 2, w, h); }
+  else demoRoom();
+  const s = room.sprite; if (!s) return;
+  const w = RW * room.scale * 1.5, h = w * s.height / s.width;
+  rx.save(); rx.translate(room.x * RW, room.y * RH); if (room.flip) rx.scale(-1, 1); rx.drawImage(s, -w / 2, -h / 2, w, h); rx.restore();
+}
+function refreshRoom(){ if (mode !== 'room') return; captureSprite(); drawRoom(); }
+function setMode(v){
+  mode = v;
+  const r = v === 'room';
+  document.querySelectorAll('#mode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === v)));
+  $('roomsec').hidden = !r; rc.hidden = !r; canvas.style.visibility = r ? 'hidden' : '';
+  document.querySelector('.views').hidden = r; $('hint').hidden = r; $('dims').hidden = r;
+  $('roomnote').hidden = !r || !!room.img; document.querySelector('.wm').hidden = r;
+  resize(); ui(); refreshRoom();
+  if (r) view.scrollIntoView({block:'start', behavior:'smooth'});
+}
+function roomSize(){
+  const cw = view.clientWidth, ch = view.clientHeight, w = Math.min(cw, ch * 1.5);
+  rc.style.width = w + 'px'; rc.style.height = w / 1.5 + 'px';
+}
+function saveImage(){
+  snapshot().toBlob(b => {
+    if (!b) return;
+    const f = new File([b], 'geniuspark-primerka.png', {type:'image/png'});
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({files:[f]})) { navigator.share({files:[f]}).catch(() => {}); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f.name; a.click();
+    $('rmsg').textContent = 'Картинка сохраняется. Если загрузка не началась, откройте примерку на сайте салона.';
+  }, 'image/png');
+}
+/* ПОТОМ: «Спросить AI по фото». Отправить фото комнаты на сервер и показать совет.
+async function askAI(){
+  const blob = await new Promise(r => rc.toBlob(r, 'image/jpeg', .85));
+  const fd = new FormData(); fd.append('photo', blob, 'room.jpg'); fd.append('model', M().n);
+  const res = await fetch(AI_ENDPOINT, {method:'POST', body:fd});
+  $('rmsg').textContent = (await res.json()).advice;
+} */
+{
+  const ptr = new Map(); let p0 = 0, s0 = 0;
+  const dist = () => { const [a, b] = [...ptr.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+  rc.addEventListener('pointerdown', e => { rc.setPointerCapture(e.pointerId); ptr.set(e.pointerId, [e.clientX, e.clientY]); if (ptr.size === 2) { p0 = dist(); s0 = room.scale; } });
+  rc.addEventListener('pointermove', e => {
+    const p = ptr.get(e.pointerId); if (!p) return;
+    const bx = rc.getBoundingClientRect(), dx = (e.clientX - p[0]) / bx.width, dy = (e.clientY - p[1]) / bx.height;
+    ptr.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptr.size === 1) { room.x = clamp(room.x + dx, 0, 1); room.y = clamp(room.y + dy, .1, 1); }
+    else if (ptr.size === 2 && p0) { room.scale = clamp(s0 * dist() / p0, .15, 1); $('rsize').value = Math.round(room.scale * 100); }
+    drawRoom();
+  });
+  const up = e => { ptr.delete(e.pointerId); if (ptr.size < 2) p0 = 0; };
+  rc.addEventListener('pointerup', up); rc.addEventListener('pointercancel', up);
+  rc.addEventListener('wheel', e => { e.preventDefault(); room.scale = clamp(room.scale * (e.deltaY > 0 ? .95 : 1.05), .15, 1); $('rsize').value = Math.round(room.scale * 100); drawRoom(); }, {passive:false});
+  $('rsize').addEventListener('input', e => { room.scale = e.target.value / 100; drawRoom(); });
+  $('rangle').addEventListener('input', e => { room.angle = e.target.value / 100; refreshRoom(); });
+  $('rfile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const im = new Image();
+    im.onload = () => { room.img = im; $('roomnote').hidden = true; drawRoom(); };
+    im.onerror = () => { $('rmsg').textContent = 'Не получилось открыть это фото. Попробуйте другое.'; };
+    im.src = URL.createObjectURL(f);
+  });
+  if (AI_ENDPOINT) $('askai').hidden = false;
+}
+
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
   const d = t.dataset;
-  if (d.model) { if (d.model !== st.model) change(() => { st = defaults(d.model); }); return; }
+  if (d.model) { if (d.model !== st.model) { uT = uCur = 0; change(() => { st = defaults(d.model); }); } return; }
   if (d.add) return add(d.add);
   if (d.del !== undefined) return remove(+d.del);
   if (d.p !== undefined) return change(() => { Object.assign(st, presetState(st.model, +d.p)); });
@@ -1339,9 +1670,16 @@ document.addEventListener('click', e => {
   if (d.arm) return change(() => { st[d.arm === 'L' ? 'armL' : 'armR'] = d.val; });
   if (d.leg) return change(() => { st.leg = d.leg; });
   if (d.pouf) return change(() => { st.pouf = d.pouf; });
+  if (d.deco) return change(() => { st.deco = d.deco; });
   if (d.pil) return change(() => { st.pillow = d.pil; });
   if (d.v) return setView(d.v);
   if (t.id === 'share') return shareImage();
+  if (d.mode) return setMode(d.mode);
+  if (t.id === 'rflip') { room.flip = !room.flip; return drawRoom(); }
+  if (t.id === 'rcenter') { room.x = .5; room.y = .66; return drawRoom(); }
+  if (t.id === 'rsave') return saveImage();
+  if (t.id === 'unfold') { uT = uT ? 0 : 1; fit(); ui(); return; }
+  if (t.id === 'runfold') { uT = uCur = uCur > .5 ? 0 : 1; applyUnfold(); ui(); refreshRoom(); return; }
   if (t.id === 'mirror') return change(() => { st.mods = st.mods.slice().reverse(); [st.armL, st.armR] = [st.armR, st.armL]; });
   if (t.id === 'undo' && hist.length) { st = JSON.parse(hist.pop()); commit(); }
 });
