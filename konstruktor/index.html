@@ -842,6 +842,13 @@ function valid(s){
 }
 let st = defaults('hilton');
 try { const s = JSON.parse(localStorage.getItem('gp_cfg3') || 'null'); if (valid(s)) st = Object.assign(defaults(s.model), s); } catch (e) {}
+try {
+  const h = new URLSearchParams(location.hash.slice(1)), u = (h.get('u') || '').replace(/^https?:\/\/geniuspark\.ru\/catalog\//, ''), k = h.get('k') || '';
+  let hit = null;
+  for (const key in MODELS) { const i = MODELS[key].presets.findIndex(p => p[6] === u); if (u && i >= 0) { hit = [key, i]; break; } }
+  if (!hit && k) { const key = Object.keys(MODELS).find(x => MODELS[x].n === k) || Object.keys(MODELS).find(x => MODELS[x].mods.some(q => q.n === k)); if (key) hit = [key, Math.max(0, MODELS[key].presets.findIndex(p => p[0] === k))]; }
+  if (hit) st = Object.assign(defaults(hit[0]), presetState(hit[0], hit[1]));
+} catch (e) {}
 let hist = [];
 let size = [0, 0], lay = {csides:{}, pillows:0};
 
